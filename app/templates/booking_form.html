@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Create Booking</title>
+    </head>
+    <body>
+        <h2>Book a Fitness Class</h2>
+        <form id="bookingForm" action="/bookings/submit" method="post">
+            <label for="client_name">Name:</label>
+            <input type="text" name="client_name" required><br><br>
+
+            <label for="client_email">Email:</label>
+            <input type="email" name="client_email" required><br><br>
+
+            <label for="fitness_class_id">Select Class:</label>
+            <select name="fitness_class_id" id="fitness_class_id" required
+                onchange="updateMinDateTime()">
+                {% for cls in classes %}
+                <option value="{{ cls.id }}" data-date="{{ cls.date }}">
+                    {{ cls.name }} ({{ cls.available_slots }} slots)
+                </option>
+                {% endfor %}
+            </select><br><br>
+
+            <label for="booking_date">Date & Time (Your Timezone):</label>
+            <input type="datetime-local" id="booking_date_local"
+                required><br><br>
+            <p>Your local time zone: <span id="timezone_display"></span></p>
+
+            <!-- Hidden fields to submit in UTC + user's timezone -->
+            <input type="hidden" name="booking_date" id="booking_date">
+            <input type="hidden" name="timezone" id="timezone">
+
+            <button type="submit">Book Slot</button>
+
+            {% if error %}
+            <p style="color:red;"><strong>{{ error }}</strong></p>
+            {% endif %}
+        </form>
+
+        <script>
+        function updateMinDateTime() {
+            const classSelect = document.getElementById("fitness_class_id");
+            const selectedOption = classSelect.options[classSelect.selectedIndex];
+            const eventDate = new Date(selectedOption.getAttribute("data-date"));
+
+            const maxBookingTime = new Date(eventDate.getTime() - 60 * 60 * 1000);
+            const now = new Date();
+
+            const bookingInput = document.getElementById("booking_date_local");
+            bookingInput.min = now.toISOString().slice(0, 16);
+            bookingInput.max = maxBookingTime.toISOString().slice(0, 16);
+        }
+
+        // Convert to UTC before submit
+        document.getElementById("bookingForm").addEventListener("submit", function (e) {
+            const localInput = document.getElementById("booking_date_local").value;
+            const localDate = new Date(localInput);
+            const utcDate = new Date(localDate.getTime() - localDate.getTimezoneOffset() * 60000);
+            document.getElementById("booking_date").value = utcDate.toISOString();
+            document.getElementById("timezone").value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            
+        });
+
+        // On load
+        window.onload = updateMinDateTime;
+    </script>
+    </body>
+</html>
